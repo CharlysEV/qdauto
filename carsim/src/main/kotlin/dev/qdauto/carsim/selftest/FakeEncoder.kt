@@ -6,12 +6,20 @@ import dev.qdauto.core.session.PhoneSession
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
+/** Solo para tests: hace que el encoder falso reproduzca lo que las manías del C10 no toleran. */
+data class EncoderTweaks(
+    /** Tamaño fijo de los IDR (`null` = el que sale del bitrate); con más de 512 KiB el coche simulado se cuelga. */
+    val idrBytes: Int? = null,
+    /** Reenviar el SPS/PPS delante de cada N-ésimo P-frame sin que nadie lo pida (0 = nunca). */
+    val repeatConfigEveryFrames: Int = 0,
+)
+
 /**
  * "Encoder" del teléfono simulado (`autotest-encoder`): con el tamaño, fps, bitrate y GOP que sugiere la sesión
  * (inCar y `VIDEO_ARGS`), manda SPS/PPS válidos y luego frames falsos a ritmo fijo, con un IDR cada FrameInterval
  * segundos y otro cada vez que la sesión lo pide (inicio, `KEY_FRAME_REQ`, atasco), como haría `MediaCodec`.
  */
-class FakeEncoder {
+class FakeEncoder(private val tweaks: EncoderTweaks = EncoderTweaks()) {
     private val idrRequested = AtomicBoolean(false)
     private val started = AtomicBoolean(false)
     private var thread: Thread? = null
@@ -60,15 +68,19 @@ class FakeEncoder {
         val gopFrames = (s.iFrameIntervalSec * fps).coerceAtLeast(1)
         // IDR = 4 P: un GOP de N frames pesa N + 3 P, así que se reparte el bitrate pedido entre N + 3.
         val pSize = (s.bitRate.toLong() / 8 / fps * gopFrames / (gopFrames + 3)).toInt().coerceIn(200, 256 * 1024)
-        val idrSize = (pSize * 4).coerceAtMost(1024 * 1024)
+        val idrSize = tweaks.idrBytes ?: (pSize * 4).coerceAtMost(1024 * 1024)
         frameBytes = pSize to idrSize
-        session.sendCodecConfig(SyntheticH264.codecConfig(s.width, s.height, fps))
+        val config = SyntheticH264.codecConfig(s.width, s.height, fps)
+        session.sendCodecConfig(config)
         val periodNanos = 1_000_000_000L / fps
         var next = System.nanoTime()
         var index = 0
         var sinceIdr = gopFrames
         while (running && !session.isClosed) {
             val key = idrRequested.getAndSet(false) || sinceIdr >= gopFrames
+            if (!key && tweaks.repeatConfigEveryFrames > 0 && index > 0 && index % tweaks.repeatConfigEveryFrames == 0) {
+                session.sendCodecConfig(config) // a propósito: SPS/PPS repetido delante de un P (manía 2 del C10)
+            }
             val frame = SyntheticH264.fakeFrame(index, key, if (key) idrSize else pSize)
             if (session.sendFrame(frame, key, index * 1_000_000L / fps)) {
                 framesAccepted.incrementAndGet()

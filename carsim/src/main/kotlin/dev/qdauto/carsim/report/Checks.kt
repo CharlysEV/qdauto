@@ -6,16 +6,21 @@ import dev.qdauto.carsim.run.RunAnalysis
 import dev.qdauto.carsim.run.RunRecorder
 import dev.qdauto.carsim.run.StopReason
 import dev.qdauto.core.session.MirrorGeometry
+import dev.qdauto.core.sim.CarSimConfig
 import dev.qdauto.core.wire.Cmd
 import dev.qdauto.core.wire.UdpCodec
 import dev.qdauto.core.wire.VideoParams
 
-enum class CheckStatus { PASS, FAIL, SKIP }
+enum class CheckStatus { PASS, WARN, FAIL, SKIP }
 
-/** Una comprobación del informe. SKIP = no se puede evaluar (p. ej. no hubo vídeo); no cuenta como fallo. */
+/**
+ * Una comprobación del informe. SKIP = no se puede evaluar (p. ej. no hubo vídeo) y WARN = correcto pero con algo
+ * que señalar; ninguno de los dos cuenta como fallo.
+ */
 data class Check(val id: String, val title: String, val status: CheckStatus, val detail: String) {
     companion object {
         fun pass(id: String, title: String, detail: String) = Check(id, title, CheckStatus.PASS, detail)
+        fun warn(id: String, title: String, detail: String) = Check(id, title, CheckStatus.WARN, detail)
         fun fail(id: String, title: String, detail: String) = Check(id, title, CheckStatus.FAIL, detail)
         fun skip(id: String, title: String, detail: String) = Check(id, title, CheckStatus.SKIP, detail)
         fun of(ok: Boolean, id: String, title: String, detail: String) = Check(id, title, if (ok) CheckStatus.PASS else CheckStatus.FAIL, detail)
@@ -34,8 +39,64 @@ object Checks {
     fun evaluate(a: RunAnalysis): List<Check> = listOf(
         discovery(a), ackFormat(a), tcp(a), appStatus(a), handshake(a), order(a), phoneInfo(a), heartbeat(a),
         videoReceived(a), videoValid(a), headerSize(a), headerEcho(a), sps(a), spsVsHeader(a),
-        fps(a), gaps(a), idr(a), touch(a), unexpected(a), session(a),
+        fps(a), gaps(a), idr(a), messageSize(a), spsRepeat(a), decode(a), touch(a), unexpected(a), session(a),
     )
+
+    /** Manía 1 del C10 (2026-10-05): el receptor se cuelga con mensajes de vídeo de más de 512 KiB. */
+    private fun messageSize(a: RunAnalysis): Check {
+        val id = "tamano_mensaje"
+        val carLimit = CarSimConfig.C10_RECEIVER_LIMIT_BYTES
+        val warnAt = a.simConfig.largeMessageBytes
+        val title = "Ningún mensaje de vídeo de más de ${carLimit / 1024} KiB (el receptor del C10 se cuelga); aviso desde ${warnAt / 1024} KiB"
+        val r = a.report
+        if (r.videoMessages == 0) return Check.skip(id, title, "no hubo vídeo")
+        val max = "máximo ${r.videoMaxMessageBytes} B (${Fmt.bytes(r.videoMaxMessageBytes.toLong())}) en ${r.videoMessages} mensajes"
+        val hang = r.receiverHang
+        if (hang != null) {
+            val at = a.recorder.hangAtMs?.let { " a los ${Fmt.secs(it)}" } ?: ""
+            return Check.fail(id, title, "el coche se colgó con el ${hang.describe()}$at y cerró tras ${hang.hangMs} ms sin leer; $max")
+        }
+        if (r.videoMaxMessageBytes > carLimit) {
+            return Check.fail(id, title, "sin emular el cuelgue (--limit ${a.simConfig.receiverLimitBytes / 1024}), pero el C10 se colgaría: $max")
+        }
+        if (r.videoLargeMessages > 0) {
+            return Check.warn(id, title, "${Fmt.count(r.videoLargeMessages, "mensaje", "mensajes")} de más de ${warnAt / 1024} KiB (el teléfono tiene que recortar a ${warnAt / 1024} KiB); $max")
+        }
+        return Check.pass(id, title, max)
+    }
+
+    /** Manía 2 del C10: reinicia el decodificador con cada SPS/PPS, aunque sea idéntico. */
+    private fun spsRepeat(a: RunAnalysis): Check {
+        val id = "sps_repetido"
+        val title = "SPS/PPS solo al principio o delante de un IDR pedido con KEY_FRAME_REQ (el C10 reinicia el decodificador con cada uno)"
+        if (!a.options.spsCheck) return Check.skip(id, title, "desactivada con --no-sps-check")
+        if (a.report.videoMessages == 0) return Check.skip(id, title, "no hubo vídeo")
+        val s = a.report.codecConfigSummary
+        if (s.count == 0) return Check.fail(id, title, "ningún SPS/PPS")
+        val detail = s.describe()
+        return when {
+            s.failed -> Check.fail(id, title, "$detail; el decodificador se reinicia sin IDR detrás (artefactos)")
+            s.warned -> Check.warn(id, title, "$detail; cada SPS/PPS de más reinicia el decodificador")
+            else -> Check.pass(id, title, detail)
+        }
+    }
+
+    private fun decode(a: RunAnalysis): Check {
+        val id = "decodifica"
+        val title = "ffmpeg decodifica el vídeo recibido sin ningún error"
+        val d = a.decode
+        d.skipReason?.let { return Check.skip(id, title, it) }
+        val r = d.result ?: return Check.skip(id, title, "no se ejecutó ffmpeg")
+        val frames = r.frames?.let { "${Fmt.count(it, "frame decodificado", "frames decodificados")}" } ?: "frames decodificados: ?"
+        val base = "$frames en ${Fmt.secs(r.elapsedMs)} con ${r.ffmpeg.path}"
+        r.failure?.let { return Check.fail(id, title, "$it; $base") }
+        return if (r.ok) {
+            Check.pass(id, title, base)
+        } else {
+            val errs = "${Fmt.count(r.errorLines.size, "línea de error", "líneas de error")}: ${r.errorLines.take(3).joinToString(" | ") { Fmt.clip(it, 160) }}"
+            Check.fail(id, title, "$errs; código ${r.exitCode}; $base")
+        }
+    }
 
     private fun discovery(a: RunAnalysis): Check {
         val id = "descubrimiento"

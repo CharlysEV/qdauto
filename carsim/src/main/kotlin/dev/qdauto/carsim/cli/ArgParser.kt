@@ -57,6 +57,13 @@ object ArgParser {
                 "out" -> o = o.copy(out = parseFile(name, value()))
                 "report" -> o = o.copy(report = parseFile(name, value()))
                 "touch-script" -> o = o.copy(touchScript = parseScript(value()))
+                "limit" -> o = o.copy(receiverLimitBytes = parseInt(name, value(), 0, 65_536) * 1024)
+                "no-limit" -> o = o.copy(receiverLimitBytes = if (flag()) 0 else o.receiverLimitBytes)
+                "hang" -> o = o.copy(receiverHangMs = parseSeconds(name, value(), 0.1))
+                "no-sps-check" -> o = o.copy(spsCheck = !flag())
+                "no-quirks" -> o = if (flag()) o.copy(receiverLimitBytes = 0, spsCheck = false) else o
+                "decode" -> o = o.copy(decode = flag())
+                "ffmpeg" -> o = o.copy(ffmpeg = parseFile(name, value()), decode = true)
                 else -> throw UsageException("opción desconocida --$name")
             }
         }

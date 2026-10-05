@@ -38,6 +38,8 @@ class SelfTest(
     private val options: Options,
     /** Solo para tests: fuerza la cabecera de vídeo del teléfono para comprobar que los fallos se detectan. */
     private val videoOverrides: VideoOverrides = VideoOverrides(),
+    /** Solo para tests: IDR enormes o SPS/PPS repetidos, para comprobar que las manías del C10 se detectan. */
+    private val encoderTweaks: EncoderTweaks = EncoderTweaks(),
 ) {
     fun run(): RunResult {
         if (options.targets.isNotEmpty()) Console.line("Aviso: --target no se usa en el autotest (todo va por 127.0.0.1).")
@@ -57,7 +59,7 @@ class SelfTest(
             script = options.touchScript ?: TouchScripts.SELF_TEST,
             checkPortFree = false,
         )
-        val phone = LoopbackPhone(phonePort, carPort, ConsoleLog(clock, options.verbose, "[teléfono] "), videoOverrides)
+        val phone = LoopbackPhone(phonePort, carPort, ConsoleLog(clock, options.verbose, "[teléfono] "), videoOverrides, encoderTweaks)
         try {
             phone.start()
         } catch (e: IOException) {

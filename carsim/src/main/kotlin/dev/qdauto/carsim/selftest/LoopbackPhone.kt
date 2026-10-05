@@ -35,6 +35,8 @@ class LoopbackPhone(
     private val log: QdLog,
     /** Para las pruebas negativas: fuerza campos de la cabecera de vídeo. */
     private val videoOverrides: VideoOverrides = VideoOverrides(),
+    /** Para las pruebas negativas: IDR enormes o SPS/PPS repetidos. */
+    encoderTweaks: EncoderTweaks = EncoderTweaks(),
 ) : Closeable {
     private val loopback = InetAddress.getLoopbackAddress()
     private val closed = AtomicBoolean(false)
@@ -53,7 +55,7 @@ class LoopbackPhone(
     var closeReason: CloseReason? = null
         private set
 
-    val encoder = FakeEncoder()
+    val encoder = FakeEncoder(encoderTweaks)
     val touches = CopyOnWriteArrayList<TouchEvent>()
     val keys = CopyOnWriteArrayList<CarKey>()
     val keyframeReasons = CopyOnWriteArrayList<KeyframeReason>()

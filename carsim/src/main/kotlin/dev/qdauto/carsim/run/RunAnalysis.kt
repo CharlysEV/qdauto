@@ -1,6 +1,7 @@
 package dev.qdauto.carsim.run
 
 import dev.qdauto.carsim.cli.Options
+import dev.qdauto.carsim.decode.DecodeOutcome
 import dev.qdauto.carsim.report.Check
 import dev.qdauto.carsim.report.CheckStatus
 import dev.qdauto.carsim.touch.StepResult
@@ -43,6 +44,8 @@ class RunAnalysis(
     val sentTouches: List<SentTouch>,
     /** Grabación del vídeo si se pidió con `--out` (la temporal se borra). */
     val savedVideo: File?,
+    /** `--decode`: el vídeo recibido pasado por ffmpeg. */
+    val decode: DecodeOutcome,
 ) {
     val connected: Boolean get() = report.connectedTo != null
     val totalBroadcasts: Int get() = report.broadcastsSent + fanoutBroadcasts

@@ -1,6 +1,8 @@
 package dev.qdauto.carsim.cli
 
+import dev.qdauto.carsim.decode.Ffmpeg
 import dev.qdauto.carsim.touch.TouchScripts
+import dev.qdauto.core.sim.CarSimConfig
 
 /** Ayuda de la CLI (`--help`). */
 object HelpText {
@@ -47,6 +49,22 @@ Prueba:
                              contra este coche, todo en 127.0.0.1 y con puertos libres. Tiene que salir PASS.
   --help                     Esta ayuda.
 
+Manías del C10 (vistas en el coche el 2026-10-05; activas por defecto):
+  --limit <KiB>              Límite del receptor del coche (por defecto ${CarSimConfig.C10_RECEIVER_LIMIT_BYTES / 1024}): con un mensaje de vídeo
+                             (48 B de cabeceras + payload) mayor, el coche simulado deja de leer el TCP (el
+                             teléfono se bloquea en write()) sin dejar de mandar heartbeats, y cierra pasados
+                             --hang segundos. Comprobación 'tamano_mensaje' (FAIL); aviso a partir de ${CarSimConfig.RECOMMENDED_MAX_MESSAGE_BYTES / 1024} KiB,
+                             que es a lo que debe recortar el teléfono. 0 o --no-limit = no colgarse.
+  --hang <s>                 Segundos sin leer antes de cerrar (por defecto ${Options.DEFAULT_HANG_MS / 1000}).
+  --no-sps-check             No evaluar 'sps_repetido': el coche reinicia el decodificador con cada SPS/PPS, así
+                             que solo se admite el primero y los que precedan a un IDR pedido con KEY_FRAME_REQ
+                             (WARN si el IDR no se pidió, FAIL si no hay IDR detrás).
+  --no-quirks                --no-limit y --no-sps-check.
+  --decode                   Al acabar, pasa el vídeo recibido por ffmpeg (-f h264 -i - -f null -): cualquier
+                             error del decodificador hace fallar 'decodifica'. Sin ffmpeg, SKIP.
+  --ffmpeg <ruta>            Ejecutable de ffmpeg (implica --decode). Por defecto se busca en
+                             ${Ffmpeg.DEFAULT_PATH.path} y en el PATH.
+
 Guion táctil. Coordenadas en px del coche o en % de su ancho/alto; órdenes separadas por líneas o por ';';
 '#' empieza un comentario. También valen en inglés: wait, tap, drag, two, pinch, key, music, idr.
   espera <ms>                                  pausa
@@ -67,6 +85,8 @@ Ejemplos:
   carsim --duration 60 --out recibido.h264 --report informe.json
   carsim --target 192.168.1.50 --width 2560 --height 1440 --fps 60 --bitrate 8M
   carsim --touch-script "espera 2000; toque 50% 50%; tecla atras"
+  carsim --decode --out recibido.h264
+  carsim --no-quirks
   carsim --self-test
 """.trim()
     }

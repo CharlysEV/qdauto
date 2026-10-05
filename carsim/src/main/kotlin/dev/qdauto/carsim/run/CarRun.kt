@@ -7,6 +7,8 @@ import dev.qdauto.carsim.Fmt
 import dev.qdauto.carsim.RunClock
 import dev.qdauto.carsim.SetupException
 import dev.qdauto.carsim.cli.Options
+import dev.qdauto.carsim.decode.DecodeOutcome
+import dev.qdauto.carsim.decode.Ffmpeg
 import dev.qdauto.carsim.net.BroadcastFanout
 import dev.qdauto.carsim.report.CheckStatus
 import dev.qdauto.carsim.report.Checks
@@ -118,6 +120,7 @@ class CarRun(
             script = scriptOutcome(),
             sentTouches = sim.sentTouches(),
             savedVideo = recording.saved,
+            decode = decode(recording.file, sim.report().videoMessages),
         )
         val extra = extension?.finish(analysis)
         val checks = Checks.evaluate(analysis) + extra?.checks.orEmpty()
@@ -209,7 +212,20 @@ class CarRun(
         videoArgs = VideoArgsValues(frameRate = options.fps, bitRate = options.bitrate, frameInterval = options.gop),
         heartbeatPeriodMs = settings.heartbeatPeriodMs,
         recordVideoTo = recording,
+        receiverLimitBytes = options.receiverLimitBytes,
+        receiverHangMs = options.receiverHangMs,
     )
+
+    /** `--decode`: la grabación por ffmpeg (con el simulador ya cerrado, así que el fichero está completo). */
+    private fun decode(recording: File, videoMessages: Int): DecodeOutcome {
+        if (!options.decode) return DecodeOutcome(false, null, null, "no se pidió --decode")
+        if (settings.mode == RunMode.SELF_TEST) return DecodeOutcome(true, null, null, "los frames del autotest son falsos y no se pueden decodificar")
+        val ffmpeg = Ffmpeg.locate(options.ffmpeg)
+            ?: return DecodeOutcome(true, null, null, options.ffmpeg?.let { "no existe ${it.path}" } ?: "ffmpeg no encontrado (ni en ${Ffmpeg.DEFAULT_PATH.path} ni en el PATH)")
+        if (videoMessages == 0) return DecodeOutcome(true, ffmpeg, null, "no hubo vídeo")
+        Console.line("${clock.stamp()}  decodificando el vídeo recibido con ${ffmpeg.path}...")
+        return DecodeOutcome(true, ffmpeg, Ffmpeg.decode(ffmpeg, recording), null)
+    }
 
     private fun startFanout(sim: CarSim, config: CarSimConfig): BroadcastFanout? {
         val extra = settings.targets.drop(1)
@@ -233,6 +249,10 @@ class CarRun(
         val c = config.carInfo
         val v = config.videoArgs
         Console.line("carsim (${settings.mode.label}): coche QDLink simulado (Leapmotor C10)")
+        val limit = if (config.receiverLimitBytes > 0) "se cuelga con mensajes de vídeo de más de ${config.receiverLimitBytes / 1024} KiB (${Fmt.duration(config.receiverHangMs)} sin leer)" else "sin límite de mensaje"
+        val spsCheck = if (options.spsCheck) "SPS/PPS repetidos" else "sin comprobar SPS/PPS repetidos"
+        val decode = if (options.decode) " | ffmpeg al final" else ""
+        Console.line("  Manías C10  $limit | $spsCheck$decode")
         Console.line("  CAR_INFO    CarType ${c.carType} | ${Fmt.size(c.carWidth, c.carHeight)} | CarFactory ${c.carFactory} | HUFactory ${c.huFactory}")
         Console.line(
             "  VIDEO_ARGS  ${Fmt.size(v.width ?: c.carWidth, v.height ?: c.carHeight)} | EncodingType ${v.encodingType} | " +

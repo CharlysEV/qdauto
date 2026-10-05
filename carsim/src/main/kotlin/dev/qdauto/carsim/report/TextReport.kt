@@ -45,7 +45,9 @@ object TextReport {
         }
         add(RULE)
         val skipped = checks.count { it.status == CheckStatus.SKIP }
-        val tail = if (skipped > 0) "; $skipped sin evaluar" else ""
+        val warned = checks.filter { it.status == CheckStatus.WARN }
+        val tail = (if (warned.isNotEmpty()) "; ${warned.size} con aviso: ${warned.joinToString(", ") { it.id }}" else "") +
+            if (skipped > 0) "; $skipped sin evaluar" else ""
         if (failed.isEmpty()) {
             add("RESULTADO: PASS (${checks.size - skipped} de ${checks.size} comprobaciones correctas$tail)")
         } else {
@@ -138,7 +140,40 @@ object TextReport {
         add("   errores de validación: ${a.report.videoErrorCount}")
         Fmt.groupedErrors(a.report.videoErrors).take(15).forEach { add("      ! $it") }
         if (a.report.videoErrorCount > a.report.videoErrors.size) add("      (se agrupan los ${a.report.videoErrors.size} primeros)")
+        quirks(a)
         a.savedVideo?.let { add("   vídeo guardado en ${it.path} (ffplay -f h264 \"${it.path}\")") }
+    }
+
+    /** Manías del C10: tamaño de los mensajes, cuelgue del receptor, SPS/PPS repetidos y decodificación con ffmpeg. */
+    private fun MutableList<String>.quirks(a: RunAnalysis) {
+        val r = a.report
+        val c = a.simConfig
+        val limit = if (c.receiverLimitBytes > 0) "límite del coche ${c.receiverLimitBytes / 1024} KiB" else "sin emular el límite del coche"
+        add("   mensaje más grande: ${r.videoMaxMessageBytes} B (${Fmt.bytes(r.videoMaxMessageBytes.toLong())}); ${r.videoLargeMessages} de más de ${c.largeMessageBytes / 1024} KiB ($limit)")
+        r.receiverHang?.let { h ->
+            val at = a.recorder.hangAtMs?.let { " a los ${Fmt.secs(it)}" } ?: ""
+            add("      ! el coche se colgó$at con el ${h.describe()} y cerró tras ${h.hangMs} ms sin leer")
+        }
+        val s = r.codecConfigSummary
+        add("   SPS/PPS: ${s.describe()}")
+        for (e in s.events) {
+            if (e.first) continue
+            val since = e.sinceLastMs?.let { "$it ms tras el anterior" } ?: "-"
+            val after = e.followedBy?.let { "seguido de $it" } ?: "sin nada detrás"
+            add("      #${e.messageIndex}: $since, ${if (e.requested) "con" else "sin"} KEY_FRAME_REQ pendiente, $after${if (e.sameAsPrevious) ", idéntico al anterior" else ""} -> ${e.verdict}")
+        }
+        val d = a.decode
+        when {
+            d.result != null -> {
+                val res = d.result
+                val frames = res.frames?.toString() ?: "?"
+                add("   ffmpeg: $frames frames, ${res.errorLines.size} líneas de error, código ${res.exitCode ?: "-"}, ${Fmt.secs(res.elapsedMs)} (${res.ffmpeg.path})")
+                res.failure?.let { add("      ! $it") }
+                res.errorLines.take(10).forEach { add("      ! ${Fmt.clip(it, 200)}") }
+                if (res.errorLines.size > 10) add("      (y ${res.errorLines.size - 10} más)")
+            }
+            d.requested -> add("   ffmpeg: ${d.skipReason}")
+        }
     }
 
     private fun MutableList<String>.sps(a: RunAnalysis) {

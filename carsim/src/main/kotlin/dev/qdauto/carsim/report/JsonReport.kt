@@ -102,7 +102,32 @@ object JsonReport {
                 "valido" to r.videoValid,
                 "erroresTotal" to r.videoErrorCount,
                 "errores" to r.videoErrors,
+                "mensajeMaxBytes" to r.videoMaxMessageBytes,
+                "mensajesGrandes" to r.videoLargeMessages,
+                "umbralGrandeBytes" to a.simConfig.largeMessageBytes,
+                "limiteCocheBytes" to a.simConfig.receiverLimitBytes,
+                "cuelgue" to r.receiverHang?.let {
+                    linkedMapOf("tMs" to rec.hangAtMs, "mensaje" to it.messageIndex, "bytes" to it.messageBytes, "limiteBytes" to it.limitBytes, "sinLeerMs" to it.hangMs)
+                },
+                "spsPps" to r.codecConfigs.map {
+                    linkedMapOf(
+                        "mensaje" to it.messageIndex, "primero" to it.first, "desdeAnteriorMs" to it.sinceLastMs, "pedido" to it.requested,
+                        "identico" to it.sameAsPrevious, "seguidoDe" to it.followedBy?.name, "veredicto" to it.verdict.name,
+                    )
+                },
             ),
+            "decodificacion" to a.decode.let { d ->
+                linkedMapOf(
+                    "pedida" to d.requested,
+                    "ffmpeg" to d.ffmpeg?.path,
+                    "omitida" to d.skipReason,
+                    "frames" to d.result?.frames,
+                    "codigo" to d.result?.exitCode,
+                    "ms" to d.result?.elapsedMs,
+                    "fallo" to d.result?.failure,
+                    "errores" to d.result?.errorLines,
+                )
+            },
             "sps" to a.sps.map { s ->
                 val info = s.info
                 linkedMapOf(

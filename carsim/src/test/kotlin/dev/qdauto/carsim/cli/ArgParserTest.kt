@@ -29,6 +29,31 @@ class ArgParserTest {
     }
 
     @Test
+    fun quirkOptions() {
+        val o = parse()
+        assertEquals(512 * 1024, o.receiverLimitBytes)
+        assertEquals(10_000L, o.receiverHangMs)
+        assertTrue(o.spsCheck)
+        assertTrue(!o.decode)
+        assertNull(o.ffmpeg)
+        val custom = parse("--limit", "256", "--hang", "2,5", "--no-sps-check", "--decode")
+        assertEquals(256 * 1024, custom.receiverLimitBytes)
+        assertEquals(2_500L, custom.receiverHangMs)
+        assertTrue(!custom.spsCheck)
+        assertTrue(custom.decode)
+        assertEquals(0, parse("--no-limit").receiverLimitBytes)
+        val none = parse("--no-quirks")
+        assertEquals(0, none.receiverLimitBytes)
+        assertTrue(!none.spsCheck)
+        val ff = parse("--ffmpeg", "C:\\x\\ffmpeg.exe")
+        assertEquals(File("C:\\x\\ffmpeg.exe"), ff.ffmpeg)
+        assertTrue(ff.decode)
+        assertFailsWith<UsageException> { parse("--limit", "-1") }
+        assertFailsWith<UsageException> { parse("--hang", "0") }
+        assertFailsWith<UsageException> { parse("--decode=si") }
+    }
+
+    @Test
     fun allOptions() {
         val o = parse(
             "--target", "192.168.1.50", "--target=broadcast,10.0.0.255", "--width", "2560", "--height=1440",

@@ -13,8 +13,11 @@ Qué hace, en orden:
 5. Recibe y valida el vídeo: cabeceras de 16 + 32 bytes, Annex-B, orden SPS/PPS → IDR → P, fps, huecos e IDR.
    Lee el SPS y lo compara con la cabecera.
 6. Con el primer frame de vídeo arranca el **guion táctil**: toques, arrastre y dos dedos (o el que se le dé).
-7. Al acabar la duración (o con Ctrl+C) saca un **informe** con todas las comprobaciones (PASS/FAIL) y termina con
-   código 0 si todo está bien.
+7. Reproduce las **manías del C10** vistas en el coche (apartado 8): se cuelga con mensajes de vídeo de más de
+   512 KiB y vigila los SPS/PPS repetidos (el coche reinicia el decodificador con cada uno). Con `--decode`, pasa
+   el vídeo recibido por ffmpeg.
+8. Al acabar la duración (o con Ctrl+C) saca un **informe** con todas las comprobaciones (PASS/WARN/FAIL) y termina
+   con código 0 si ninguna falla.
 
 ---
 
@@ -80,9 +83,15 @@ En `cmd` es igual, con `set JAVA_HOME=D:\Android\jdk`. Desde Git Bash vale `cars
 | `--verbose` | - | Cada mensaje que entra y sale (vídeo incluido) y los logs internos de `:core` |
 | `--self-test` | - | Autotest en local (apartado 5) |
 | `--help` | - | Ayuda |
+| `--limit <KiB>` | 512 | Límite del receptor del coche: con un mensaje de vídeo mayor, el coche simulado se cuelga como el C10 (apartado 8). `0` o `--no-limit` = no colgarse |
+| `--hang <s>` | 10 | Segundos sin leer antes de cerrar cuando se cuelga |
+| `--no-sps-check` | - | No evaluar `sps_repetido` |
+| `--no-quirks` | - | `--no-limit` y `--no-sps-check` |
+| `--decode` | - | Al acabar, pasa el vídeo recibido por ffmpeg; comprobación `decodifica` |
+| `--ffmpeg <ruta>` | `tools\ffmpeg\...\ffmpeg.exe` o el del `PATH` | Ejecutable de ffmpeg (implica `--decode`) |
 
-Códigos de salida: **0** todo PASS, **1** alguna comprobación FAIL, **2** opciones incorrectas, **3** error al arrancar
-(p. ej. el UDP 18464 ocupado por otro carsim).
+Códigos de salida: **0** ninguna comprobación FAIL (los WARN no cuentan), **1** alguna comprobación FAIL, **2** opciones
+incorrectas, **3** error al arrancar (p. ej. el UDP 18464 ocupado por otro carsim).
 
 ## 4. Guion táctil
 
@@ -123,8 +132,9 @@ que no hace falta ni el móvil ni el cortafuegos. Pasa por el mismo camino que u
 - `autotest_keyframe`: `KEY_FRAME_REQ` hace que el teléfono reenvíe SPS/PPS y pida un IDR.
 - `autotest_hilos`: al acabar no queda vivo ningún hilo del coche ni del teléfono.
 
-Tiene que salir `RESULTADO: PASS` con código 0. Los tests de Gradle (`:carsim:test`) incluyen una versión corta y otra
-con la cabecera de vídeo mal a propósito, que tiene que dar FAIL.
+Tiene que salir `RESULTADO: PASS` con código 0. Los tests de Gradle (`:carsim:test`) incluyen una versión corta y otras
+con fallos a propósito que tienen que dar FAIL: la cabecera de vídeo mal, un IDR de 600 KiB (el coche se cuelga),
+SPS/PPS repetidos delante de un P-frame. `--decode` no se evalúa en el autotest (los frames son falsos).
 
 ## 6. Cortafuegos de Windows
 
@@ -159,7 +169,9 @@ El informe final tiene:
   (los heartbeats, por ejemplo). El JSON tiene la lista completa en orden.
 - **Vídeo**: mensajes (SPS/PPS, IDR, P), bytes, fps medio y mínimo/máximo por segundo, bitrate medio y máximo, hueco
   máximo entre frames, intervalos entre IDR (en ms y en frames), cabeceras de 32 bytes distintas y errores de
-  validación agrupados.
+  validación agrupados. Además, el mensaje más grande y cuántos pasan de 480 KiB, si el coche se colgó, cada
+  SPS/PPS con su contexto (cuánto tardó, si había `KEY_FRAME_REQ` pendiente, qué vino detrás, si es idéntico al
+  anterior) y, con `--decode`, lo que dijo ffmpeg.
 - **SPS**: perfil, constraint flags, nivel, tamaño con el recorte aplicado (y el codificado), croma, POC, referencias,
   fps de la VUI y reordenación, con su hex. Indica si coincide con las cabeceras de 32 bytes que lo acompañan.
 - **Guion táctil**: cada paso con su resultado y las coordenadas reales.
@@ -184,17 +196,47 @@ El informe final tiene:
 | `fps` | fps medio entre el 50 % y el 150 % del pedido (con 2 s de vídeo o más) |
 | `huecos` | Ningún corte de vídeo de más de 1 s |
 | `idr` | Un IDR como mínimo cada 2 x `FrameInterval` s |
+| `tamano_mensaje` | Ningún mensaje de vídeo de más de 512 KiB (FAIL: el coche se colgó, o se colgaría con `--no-limit`); WARN si alguno pasa de 480 KiB. Informa del mensaje más grande |
+| `sps_repetido` | SPS/PPS solo al principio o delante de un IDR pedido con `KEY_FRAME_REQ`; WARN si precede a un IDR que nadie pidió, FAIL si no hay IDR detrás. Informa del número y los intervalos |
+| `decodifica` | Con `--decode`: ffmpeg decodifica el vídeo sin ninguna línea de error (SKIP sin `--decode`, sin ffmpeg o en el autotest) |
 | `tactil` | El guion se envía entero |
 | `inesperados` | Nada raro del teléfono: bytes basura, msgType inesperados, `!BIN` que no sea el AppStatus |
 | `sesion` | La conexión dura hasta el final de la prueba |
 
-`SKIP` significa que no se pudo evaluar (por ejemplo, sin vídeo no se mira el SPS) y no cuenta como fallo. Si no
-llega el ACK, el informe termina con una lista de cosas a revisar.
+`SKIP` significa que no se pudo evaluar (por ejemplo, sin vídeo no se mira el SPS) y `WARN` que está bien pero hay
+algo que señalar; ninguno de los dos cuenta como fallo. Si no llega el ACK, el informe termina con una lista de cosas
+a revisar.
 
 Ctrl+C para la prueba y saca el informe igualmente (y el JSON, si se pidió). El código de salida sale de las
 comprobaciones.
 
-## 8. Notas y limitaciones
+## 8. Manías del C10
+
+Dos cosas que hace el coche de verdad (vistas el 2026-10-05) y que no se veían en casa. carsim las reproduce para
+que se cacen antes de publicar. Están activas por defecto.
+
+1. **Límite de 512 KiB por mensaje.** El receptor QDLink del coche se cuelga con cualquier mensaje de vídeo
+   (48 bytes de cabeceras + payload) de más de 524 288 bytes: deja de leer el TCP (el `write()` del teléfono se
+   bloquea en cuanto se llenan los búferes) sin dejar de mandar heartbeats, hasta que el watchdog del teléfono corta
+   la sesión unos 10 s después. carsim hace exactamente eso: al recibir uno de más deja de leer `--hang` segundos
+   (10) y cierra. La comprobación `tamano_mensaje` da FAIL con el tamaño y la hora del mensaje, y avisa (WARN) si
+   alguno pasa de 480 KiB, que es el tope que tiene que aplicar el teléfono. `--limit 0` (o `--no-limit`) desactiva
+   el cuelgue, pero la comprobación sigue fallando si algún mensaje pasa de 512 KiB.
+2. **Reinicio del decodificador con cada SPS/PPS.** El coche reinicializa el decodificador con cada mensaje de
+   configuración (`VIDEO_CONFIG`), aunque sea idéntico al anterior, y eso se ve como artefactos. `sps_repetido`
+   admite el primero de cada conexión (una reconexión es una conexión nueva) y los que preceden a un IDR pedido con
+   `KEY_FRAME_REQ`; un SPS/PPS delante de un IDR que nadie pidió es WARN, y uno sin IDR detrás (seguido de un P-frame
+   o de otro SPS/PPS) es FAIL. En el informe sale cada uno con el intervalo desde el anterior. `--no-sps-check` lo
+   deja en SKIP.
+3. **Decodificación real (`--decode`).** Al acabar, el Annex-B recibido se manda por la entrada estándar de ffmpeg
+   (`-f h264 -i - -f null -`, con `-loglevel error`) y cualquier línea de error del decodificador hace fallar
+   `decodifica`; en el detalle van los frames decodificados y las primeras líneas de error. ffmpeg se busca en
+   `--ffmpeg`, en `C:\Users\calva\Desktop\qd\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe` y en el
+   `PATH`; si no está, SKIP. En el autotest también SKIP (los frames son falsos).
+
+`--no-quirks` desactiva 1 y 2 a la vez (útil para comparar con un coche que no tenga estas manías).
+
+## 9. Notas y limitaciones
 
 - No se sabe cómo es de verdad el `Connect_Broadcast` del C10, ni el formato y periodo de sus heartbeats, ni sus
   tiempos. carsim imita lo que espera QDLink, con los valores de `CarSim` (spec §11).

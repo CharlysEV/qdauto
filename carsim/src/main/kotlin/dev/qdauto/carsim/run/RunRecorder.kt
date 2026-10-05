@@ -5,6 +5,7 @@ import dev.qdauto.carsim.Fmt
 import dev.qdauto.carsim.RunClock
 import dev.qdauto.core.sim.CarSimListener
 import dev.qdauto.core.sim.CarSimState
+import dev.qdauto.core.sim.ReceiverHang
 import dev.qdauto.core.sim.VideoFrameInfo
 import dev.qdauto.core.sim.VideoKind
 import dev.qdauto.core.util.BE
@@ -43,6 +44,8 @@ data class RecorderSnapshot(
     val firstVideoAtMs: Long?,
     val closedAtMs: Long?,
     val closeReason: String?,
+    /** Cuándo se colgó el coche simulado por un mensaje de vídeo demasiado grande. */
+    val hangAtMs: Long?,
     val spsSegments: List<SpsSegment>,
     val headersBeforeFirstSps: Map<Dims, Int>,
 )
@@ -93,6 +96,9 @@ class RunRecorder(
 
     @Volatile
     private var closeReason: String? = null
+
+    @Volatile
+    private var hangAtMs: Long? = null
 
     /** Apunta un hito suelto (inicio, fin...). */
     fun note(text: String, print: Boolean = false) {
@@ -156,6 +162,12 @@ class RunRecorder(
         }
     }
 
+    override fun onReceiverHang(hang: ReceiverHang) {
+        val t = clock.elapsedMs()
+        if (hangAtMs == null) hangAtMs = t
+        first(t, "hang", "!! el coche se cuelga como el C10: ${hang.describe()}; deja de leer ${hang.hangMs} ms y cierra", print = true)
+    }
+
     override fun onTrace(event: TraceEvent) {
         val t = clock.elapsedMs()
         if (verbose) say(t, event.toString())
@@ -199,6 +211,7 @@ class RunRecorder(
             firstVideoAtMs = firstVideoAtMs,
             closedAtMs = closedAtMs,
             closeReason = closeReason,
+            hangAtMs = hangAtMs,
             spsSegments = sps.segments(),
             headersBeforeFirstSps = sps.headersBeforeFirstSps(),
         )
