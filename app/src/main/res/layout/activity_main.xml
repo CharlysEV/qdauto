@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp">
+
+    <LinearLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            style="@style/QdTitle"
+            android:text="@string/title" />
+
+        <TextView
+            android:id="@+id/service_state"
+            style="@style/QdBody" />
+
+        <LinearLayout style="@style/QdButtonRow">
+
+            <Button
+                android:id="@+id/btn_start"
+                style="@style/QdButton"
+                android:text="@string/start" />
+
+            <Button
+                android:id="@+id/btn_stop"
+                style="@style/QdButton"
+                android:text="@string/stop" />
+
+            <Button
+                android:id="@+id/btn_settings"
+                style="@style/QdButton"
+                android:text="@string/settings" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/warnings"
+            style="@style/QdWarning" />
+
+        <LinearLayout style="@style/QdButtonRow">
+
+            <Button
+                android:id="@+id/btn_qdlink"
+                style="@style/QdButton"
+                android:text="@string/qdlink_settings" />
+
+            <Button
+                android:id="@+id/btn_battery"
+                style="@style/QdButton"
+                android:text="@string/battery" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_network" />
+
+        <TextView
+            style="@style/QdBody"
+            android:text="@string/mode_label" />
+
+        <RadioGroup
+            android:id="@+id/mode_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/mode_hotspot"
+                style="@style/QdRadio"
+                android:text="@string/mode_hotspot" />
+
+            <RadioButton
+                android:id="@+id/mode_p2p"
+                style="@style/QdRadio"
+                android:text="@string/mode_p2p" />
+        </RadioGroup>
+
+        <Switch
+            android:id="@+id/switch_auto"
+            style="@style/QdBody"
+            android:text="@string/auto_connect" />
+
+        <TextView
+            android:id="@+id/network_text"
+            style="@style/QdMono" />
+
+        <LinearLayout
+            android:id="@+id/p2p_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                style="@style/QdSection"
+                android:text="@string/section_p2p" />
+
+            <TextView
+                android:id="@+id/p2p_warning"
+                style="@style/QdWarning"
+                android:visibility="gone" />
+
+            <LinearLayout style="@style/QdButtonRow">
+
+                <Button
+                    android:id="@+id/btn_p2p_search"
+                    style="@style/QdButton"
+                    android:text="@string/p2p_search" />
+
+                <Button
+                    android:id="@+id/btn_p2p_disconnect"
+                    style="@style/QdButton"
+                    android:text="@string/p2p_disconnect" />
+
+                <Button
+                    android:id="@+id/btn_p2p_fix"
+                    style="@style/QdButton"
+                    android:text="@string/p2p_fix_permission"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/p2p_state"
+                style="@style/QdMono" />
+
+            <TextView
+                style="@style/QdHelp"
+                android:text="@string/p2p_help" />
+
+            <LinearLayout
+                android:id="@+id/p2p_peers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/p2p_hidden"
+                style="@style/QdHelp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/p2p_group"
+                style="@style/QdMono"
+                android:paddingTop="6dp" />
+
+            <Button
+                android:id="@+id/btn_p2p_forget"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/p2p_forget"
+                android:textAllCaps="false"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_cars" />
+
+        <LinearLayout
+            android:id="@+id/cars_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_session" />
+
+        <TextView
+            android:id="@+id/session_text"
+            style="@style/QdMono" />
+
+        <LinearLayout style="@style/QdButtonRow">
+
+            <Button
+                android:id="@+id/btn_disconnect"
+                style="@style/QdButton"
+                android:text="@string/disconnect" />
+
+            <Button
+                android:id="@+id/btn_idr"
+                style="@style/QdButton"
+                android:text="@string/request_idr" />
+
+            <Button
+                android:id="@+id/btn_phone_info"
+                style="@style/QdButton"
+                android:text="@string/resend_phone_info" />
+        </LinearLayout>
+
+        <LinearLayout style="@style/QdButtonRow">
+
+            <Button
+                android:id="@+id/btn_unlocked"
+                style="@style/QdButton"
+                android:text="@string/send_unlocked" />
+
+            <Button
+                android:id="@+id/btn_background"
+                style="@style/QdButton"
+                android:text="@string/send_background" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_video" />
+
+        <TextView
+            android:id="@+id/video_text"
+            style="@style/QdMono" />
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_touch" />
+
+        <dev.qdauto.app.ui.TouchView
+            android:id="@+id/touch_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/touch_text"
+            style="@style/QdMono" />
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_messages" />
+
+        <TextView
+            android:id="@+id/messages_text"
+            style="@style/QdMono" />
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_selftest" />
+
+        <TextView
+            style="@style/QdHelp"
+            android:text="@string/selftest_help" />
+
+        <Button
+            android:id="@+id/btn_selftest"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/run_selftest"
+            android:textAllCaps="false" />
+
+        <TextView
+            android:id="@+id/selftest_text"
+            style="@style/QdMono" />
+
+        <TextView
+            style="@style/QdSection"
+            android:text="@string/section_log" />
+
+        <LinearLayout style="@style/QdButtonRow">
+
+            <Button
+                android:id="@+id/btn_export"
+                style="@style/QdButton"
+                android:text="@string/export_log" />
+
+            <Button
+                android:id="@+id/btn_clear_log"
+                style="@style/QdButton"
+                android:text="@string/clear_log" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/log_path"
+            style="@style/QdHelp" />
+
+        <TextView
+            android:id="@+id/log_text"
+            style="@style/QdMonoSmall" />
+    </LinearLayout>
+</ScrollView>

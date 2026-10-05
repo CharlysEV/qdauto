@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="qd_background">#FF121216</color>
+    <color name="qd_section">#FF7FC8FF</color>
+    <color name="qd_text">#FFE8E8EE</color>
+    <color name="qd_mono">#FFD0D4DC</color>
+    <color name="qd_warning">#FFFFC060</color>
+    <color name="qd_help">#FF9A9AA6</color>
+    <color name="qd_launcher_background">#FF1E3A5F</color>
+
+    <style name="Theme.QdAuto" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowBackground">@color/qd_background</item>
+        <item name="android:colorBackground">@color/qd_background</item>
+    </style>
+
+    <style name="QdTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/qd_text</item>
+        <item name="android:paddingBottom">6dp</item>
+    </style>
+
+    <style name="QdSection">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/qd_section</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">4dp</item>
+    </style>
+
+    <style name="QdBody">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/qd_text</item>
+    </style>
+
+    <style name="QdWarning" parent="QdBody">
+        <item name="android:textColor">@color/qd_warning</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="QdHelp" parent="QdBody">
+        <item name="android:textColor">@color/qd_help</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="QdMono">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:typeface">monospace</item>
+        <item name="android:textColor">@color/qd_mono</item>
+    </style>
+
+    <style name="QdMonoSmall" parent="QdMono">
+        <item name="android:textSize">10sp</item>
+    </style>
+
+    <style name="QdRadio">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/qd_text</item>
+    </style>
+
+    <style name="QdButtonRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+    </style>
+
+    <style name="QdButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+</resources>

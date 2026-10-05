@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primer plano del icono adaptable (108 dp, zona segura de 66 dp en el centro). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M30,38h48v30H30z M34,42v22h40V42z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M44,71h20v4H44z" />
+    <path
+        android:fillColor="#FF7FC8FF"
+        android:pathData="M37,45h6v16h-6z" />
+    <path
+        android:fillColor="#FFFFC060"
+        android:pathData="M45,45h6v16h-6z" />
+    <path
+        android:fillColor="#FF80E080"
+        android:pathData="M53,45h6v16h-6z" />
+    <path
+        android:fillColor="#FFFF7070"
+        android:pathData="M61,45h6v16h-6z" />
+</vector>

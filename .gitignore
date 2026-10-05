@@ -1,0 +1,10 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+*.h264
+*.log
+/carsim/*.json
+bin/

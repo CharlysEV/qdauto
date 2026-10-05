@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Sockets: UDP 18463 (broadcast del coche y ACK) y el ServerSocket TCP en el que conecta el coche. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- ConnectivityManager: avisos de cambios de Wi-Fi (registerNetworkCallback) y getLinkProperties. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- WifiManager.isWifiEnabled(): estado de la Wi-Fi cliente en el panel de red y en el log. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- requestNetwork(Wi-Fi) para mantener y vincular la Wi-Fi sin Internet del coche (opción "coche como punto de
+         acceso"); además es uno de los requisitos previos del tipo connectedDevice en Android 14+. -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <!-- MulticastLock.acquire(): que el filtro de paquetes de la Wi-Fi no descarte los broadcast UDP con la pantalla
+         apagada; también satisface el requisito previo de connectedDevice. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- WakeLock parcial (CPU con la pantalla apagada) y WifiLock.acquire(). -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- startForeground() (API 28+) y el tipo connectedDevice (API 34+). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- Notificación del servicio (se pide en tiempo de ejecución en Android 13+; sin ella el servicio funciona igual). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Wi-Fi Direct (spec 05 §7.2). WifiP2pManager.initialize() exige ACCESS_WIFI_STATE y CHANGE_WIFI_STATE; este último
+         también vale como requisito previo del tipo connectedDevice. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Android 13+: buscar y conectar por Wi-Fi Direct. Se pide solo al usar ese modo. neverForLocation: no hace falta
+         permiso de ubicación ni tenerla encendida. -->
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="33" />
+    <!-- Android 10-12: las mismas llamadas exigen la ubicación precisa (en 12, pedida junto con la aproximada). -->
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.ACCESS_COARSE_LOCATION"
+        android:maxSdkVersion="32" />
+    <uses-feature
+        android:name="android.hardware.wifi.direct"
+        android:required="false" />
+
+    <!-- androidx.core añade este permiso propio para ContextCompat.registerReceiver, que la app no usa. -->
+    <permission
+        android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        tools:node="remove" />
+    <uses-permission
+        android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        tools:node="remove" />
+
+    <!-- Para avisar de que QDLink está instalado (visibilidad de paquetes, Android 11+). No es un permiso. -->
+    <queries>
+        <package android:name="com.neusoft.qdrivelink" />
+    </queries>
+
+    <application
+        android:name=".QdAutoApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.QdAuto">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- connectedDevice: interacción con un dispositivo externo (el coche) por red, en zona Wi-Fi o Wi-Fi Direct.
+             No es mediaProjection: el vídeo lo genera la app, no se captura la pantalla. -->
+        <service
+            android:name=".service.LinkService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+    </application>
+</manifest>
