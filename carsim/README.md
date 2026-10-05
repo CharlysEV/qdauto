@@ -231,7 +231,7 @@ que se cacen antes de publicar. Están activas por defecto.
 3. **Decodificación real (`--decode`).** Al acabar, el Annex-B recibido se manda por la entrada estándar de ffmpeg
    (`-f h264 -i - -f null -`, con `-loglevel error`) y cualquier línea de error del decodificador hace fallar
    `decodifica`; en el detalle van los frames decodificados y las primeras líneas de error. ffmpeg se busca en
-   `--ffmpeg`, en `C:\Users\calva\Desktop\qd\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe` y en el
+   `--ffmpeg`, en la variable `QDAUTO_FFMPEG`, en `toolsfmpeg\...infmpeg.exe` (relativo al directorio de trabajo) y en el
    `PATH`; si no está, SKIP. En el autotest también SKIP (los frames son falsos).
 
 `--no-quirks` desactiva 1 y 2 a la vez (útil para comparar con un coche que no tenga estas manías).

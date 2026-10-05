@@ -33,7 +33,8 @@ data class DecodeOutcome(
  * decodificador cuenta como fallo. ffmpeg se busca en `--ffmpeg`, en [DEFAULT_PATH] y en el `PATH`.
  */
 object Ffmpeg {
-    val DEFAULT_PATH = File("C:\\Users\\calva\\Desktop\\qd\\tools\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.exe")
+    /** `QDAUTO_FFMPEG` o `tools/ffmpeg/...` relativo al directorio de trabajo. */
+    val DEFAULT_PATH = File(System.getenv("QDAUTO_FFMPEG") ?: "tools/ffmpeg/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe")
 
     /** Dónde está ffmpeg, o `null`. Con [explicit] solo vale ese (si no existe, `null`). */
     fun locate(explicit: File? = null, path: String? = System.getenv("PATH"), default: File = DEFAULT_PATH): File? {
